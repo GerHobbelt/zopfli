@@ -157,6 +157,7 @@ int main(int argc, char *argv[]) {
   bool always_zopflify = false;  // overwrite file even if we have bigger result
   bool yes = false;  // do not ask to overwrite files
   bool dryrun = false;  // never save anything
+  bool iterations_set = false; // did user specify number of iterations?
 
   std::string user_out_filename;  // output filename if no prefix is used
   bool use_prefix = false;
@@ -202,6 +203,7 @@ int main(int argc, char *argv[]) {
         if (num < 1) num = 1;
         png_options.num_iterations = num;
         png_options.num_iterations_large = num;
+        iterations_set = true;
       } else if (name == "--splitting") {
         // ignored
       } else if (name == "--filters") {
@@ -300,6 +302,42 @@ int main(int argc, char *argv[]) {
 
     error = lodepng::load_file(origpng, files[i]);
     if (!error) {
+      // Create number of iterations based upon image size if
+      // --iterations flag was not specified
+      if (!iterations_set) {
+        size_t insize = origpng.size();
+        if (insize <= (25*1024)) {
+          png_options.num_iterations = 250;
+        }
+        else if (insize > (25*1024) && insize <= (50*1024)) {
+          png_options.num_iterations = 75;
+        }
+        else if (insize > (50*1024) && insize <= (150*1024)) {
+          png_options.num_iterations = 60;
+        }
+        else if (insize > (150*1024) && insize <= (250*1024)) {
+          png_options.num_iterations = 45;
+        }
+        else if (insize > (250*1024) && insize <= (750*1024)) {
+          png_options.num_iterations = 30;
+        }
+        else if (insize > (750*1024) && insize <= (1250*1024)) {
+          png_options.num_iterations = 20;
+        }
+        else if (insize > (1250*1024) && insize <= (1750*1024)) {
+          png_options.num_iterations = 10;
+        }
+        else if (insize > (1750*1024) && insize <= (2500*1024)) {
+          png_options.num_iterations = 7;
+        }
+        else {
+          png_options.num_iterations = 5;
+        }
+      }
+
+      printf("Iterations: %d\n", png_options.num_iterations);
+
+
       error = ZopfliPNGOptimize(origpng, png_options,
                                 png_options.verbose, &resultpng);
     }

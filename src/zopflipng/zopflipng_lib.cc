@@ -53,8 +53,7 @@ unsigned CustomPNGDeflate(unsigned char** out, size_t* outsize,
   ZopfliInitOptions(&options);
 
   options.verbose = png_options->verbose;
-  options.numiterations = insize < 200000
-      ? png_options->num_iterations : png_options->num_iterations_large;
+  options.numiterations = png_options->num_iterations;
 
   ZopfliDeflate(&options, 2 /* Dynamic */, 1, in, insize, &bp, out, outsize);
 
