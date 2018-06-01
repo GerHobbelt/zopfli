@@ -137,7 +137,7 @@ void ShowHelp() {
          " outfile.png\n"
          "Compress more: zopflipng -m infile.png outfile.png\n"
          "Optimize multiple files: zopflipng --prefix a.png b.png c.png\n"
-         "Compress really good and trying all filter strategies: zopflipng"
+         "Compress really well and try all filter strategies: zopflipng"
          " --iterations=500 --filters=01234mepb --lossy_8bit"
          " --lossy_transparent infile.png outfile.png\n");
 }
