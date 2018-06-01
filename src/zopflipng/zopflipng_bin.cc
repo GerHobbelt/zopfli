@@ -347,10 +347,9 @@ int main(int argc, char *argv[]) {
           png_options.num_iterations = 5;
         }
       }
-
+      // report number of iterations definition to user
       printf("Iterations: %d\n", png_options.num_iterations);
-
-
+      // begin optimization of image
       error = ZopfliPNGOptimize(origpng, png_options,
                                 png_options.verbose, &resultpng);
     }
