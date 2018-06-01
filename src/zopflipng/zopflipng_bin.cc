@@ -24,6 +24,8 @@
 #include "lodepng/lodepng_util.h"
 #include "zopflipng_lib.h"
 
+#define ZOPFLIPNG_VERSION "2.0.0"
+
 // Returns directory path (including last slash) in dir, filename without
 // extension in file, extension (including the dot) in ext
 void GetFileNameParts(const std::string& filename,
@@ -69,8 +71,13 @@ size_t GetFileSize(const std::string& filename) {
   return size;
 }
 
+void ShowVersion() {
+  printf("zopflipng v%s\n", ZOPFLIPNG_VERSION);
+}
+
 void ShowHelp() {
-  printf("ZopfliPNG, a Portable Network Graphics (PNG) image optimizer.\n"
+  printf("ZopfliPNG v%s\n", ZOPFLIPNG_VERSION);
+  printf("A Portable Network Graphics (PNG) image optimizer.\n"
          "\n"
          "Usage: zopflipng [options]... infile.png outfile.png\n"
          "       zopflipng [options]... --prefix=[fileprefix] [files.png]...\n"
@@ -181,6 +188,9 @@ int main(int argc, char *argv[]) {
         } else if (c == 'h') {
           ShowHelp();
           return 0;
+        } else if (c == 'v') {
+          ShowVersion();
+          return 0;
         } else {
           printf("Unknown flag: %c\n", c);
           return 0;
@@ -246,6 +256,9 @@ int main(int argc, char *argv[]) {
         if (!value.empty()) prefix = value;
       } else if (name == "--help") {
         ShowHelp();
+        return 0;
+      } else if (name == "--version") {
+        ShowVersion();
         return 0;
       } else {
         printf("Unknown flag: %s\n", name.c_str());
