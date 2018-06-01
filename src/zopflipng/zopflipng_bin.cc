@@ -158,7 +158,7 @@ void PrintResultSize(const char* label, size_t oldsize, size_t newsize) {
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     ShowHelp();
-    return 0;
+    return 1;
   }
 
   ZopfliPNGOptions png_options;
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
           return 0;
         } else {
           printf("Unknown flag: %c\n", c);
-          return 0;
+          return 1;
         }
       }
     } else if (arg[0] == '-' && arg.size() > 1 && arg[1] == '-') {
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
         if (!correct) {
           printf("Error: keepchunks format must be like for example:\n"
                  " --keepchunks=gAMA,cHRM,sRGB,iCCP\n");
-          return 0;
+          return 1;
         }
       } else if (name == "--prefix") {
         use_prefix = true;
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
         return 0;
       } else {
         printf("Unknown flag: %s\n", name.c_str());
-        return 0;
+        return 1;
       }
     } else {
       files.push_back(argv[i]);
@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
     } else {
       printf("Please provide one input and output filename\n\n");
       ShowHelp();
-      return 0;
+      return 1;
     }
   }
 
