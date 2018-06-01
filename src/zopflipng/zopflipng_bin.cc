@@ -86,7 +86,6 @@ void ShowHelp() {
          " previous run and not overwritten if its filesize is smaller.\n"
          "\n"
          "Options:\n"
-         "-m: compress more: use more iterations (depending on file size)\n"
          "--prefix=[fileprefix]: Adds a prefix to output filenames. May also"
          " contain a directory path. When using a prefix, multiple input files"
          " can be given and the output filenames are generated with the"
@@ -180,9 +179,6 @@ int main(int argc, char *argv[]) {
           yes = true;
         } else if (c == 'd') {
           dryrun = true;
-        } else if (c == 'm') {
-          png_options.num_iterations *= 4;
-          png_options.num_iterations_large *= 4;
         } else if (c == 'q') {
           png_options.use_zopfli = false;
         } else if (c == 'h') {
@@ -315,7 +311,7 @@ int main(int argc, char *argv[]) {
 
     error = lodepng::load_file(origpng, files[i]);
     if (!error) {
-      // Create number of iterations based upon image size if
+      // Define number of iterations based upon image size if
       // --iterations flag was not specified
       if (!iterations_set) {
         size_t insize = origpng.size();
