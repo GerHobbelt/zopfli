@@ -1,6 +1,6 @@
 ## zopfli
 
-**This repository is a derivative of the [google/zopfli source repository](https://github.com/google/zopfli) and includes modifications to the upstream source files.**
+**This repository is a derivative of the [google/zopfli source repository](https://github.com/google/zopfli) and includes modifications of the upstream source files.**
 
 Zopfli Compression Algorithm is a compression library programmed in C to perform
 very good, but slow, deflate or zlib compression.
