@@ -14,6 +14,7 @@
 //
 // Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 // Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+// Author: chris@sourcefoundry.org (Chris Simpkins)
 
 // Command line tool to recompress and optimize PNG images, using zopflipng_lib.
 
@@ -72,12 +73,15 @@ size_t GetFileSize(const std::string& filename) {
 }
 
 void ShowVersion() {
-  printf("zopflipng v%s\n", ZOPFLIPNG_VERSION);
+  printf("zopflipng v%s (@chrissimpkins derivative)\n", ZOPFLIPNG_VERSION);
 }
 
 void ShowHelp() {
-  printf("ZopfliPNG v%s\n", ZOPFLIPNG_VERSION);
-  printf("A Portable Network Graphics (PNG) image optimizer.\n"
+  printf("==================================================\n");
+  printf("ZopfliPNG v%s (@chrissimpkins derivative)\n", ZOPFLIPNG_VERSION);
+  printf("A Portable Network Graphics (PNG) image optimizer\n"
+         "Apache License, Version 2.0\n"
+         "==================================================\n"
          "\n"
          "Usage: zopflipng [options]... infile.png outfile.png\n"
          "       zopflipng [options]... --prefix=[fileprefix] [files.png]...\n"
