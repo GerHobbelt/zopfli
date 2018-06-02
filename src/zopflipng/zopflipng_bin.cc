@@ -25,6 +25,7 @@
 #include "lodepng/lodepng_util.h"
 #include "zopflipng_lib.h"
 
+// C.S.: define version changes here and in makefile
 #define ZOPFLIPNG_VERSION "2.0.0"
 
 // Returns directory path (including last slash) in dir, filename without
@@ -139,7 +140,6 @@ void ShowHelp() {
          "Usage examples:\n"
          "Optimize a file and overwrite if smaller: zopflipng infile.png"
          " outfile.png\n"
-         "Compress more: zopflipng -m infile.png outfile.png\n"
          "Optimize multiple files: zopflipng --prefix a.png b.png c.png\n"
          "Compress really well and try all filter strategies: zopflipng"
          " --iterations=500 --filters=01234mepb --lossy_8bit"
