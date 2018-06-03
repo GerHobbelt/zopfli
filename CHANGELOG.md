@@ -1,5 +1,10 @@
 ## Changelog
 
+### v2.1.0
+
+- zopflipng: scaled down input file size ranges
+- zopflipng: scaled down number of iterations in file size ranges
+
 ### v2.0.0
 
 - added more granular definitions of number of zopfli iterations based upon file size (defined in 9 size ranges).  These ranges were defined by experimentation with quantized PNG files that were created with pngquant
