@@ -26,7 +26,7 @@
 #include "zopflipng_lib.h"
 
 // C.S.: define version changes here and in makefile
-#define ZOPFLIPNG_VERSION "2.0.0"
+#define ZOPFLIPNG_VERSION "2.1.0"
 
 // Returns directory path (including last slash) in dir, filename without
 // extension in file, extension (including the dot) in ext
@@ -319,32 +319,32 @@ int main(int argc, char *argv[]) {
       // --iterations flag was not specified
       if (!iterations_set) {
         size_t insize = origpng.size();
-        if (insize <= (25*1024)) {
-          png_options.num_iterations = 250;
+        if (insize <= (2*1024)) {
+          png_options.num_iterations = 80;
         }
-        else if (insize > (25*1024) && insize <= (50*1024)) {
-          png_options.num_iterations = 75;
+        else if (insize > (2*1024) && insize <= (5*1024)) {
+          png_options.num_iterations = 50;
         }
-        else if (insize > (50*1024) && insize <= (150*1024)) {
-          png_options.num_iterations = 60;
+        else if (insize > (5*1024) && insize <= (15*1024)) {
+          png_options.num_iterations = 40;
         }
-        else if (insize > (150*1024) && insize <= (250*1024)) {
-          png_options.num_iterations = 45;
+        else if (insize > (15*1024) && insize <= (50*1024)) {
+          png_options.num_iterations = 25;
         }
-        else if (insize > (250*1024) && insize <= (750*1024)) {
-          png_options.num_iterations = 30;
+        else if (insize > (50*1024) && insize <= (225*1024)) {
+          png_options.num_iterations = 18;
         }
-        else if (insize > (750*1024) && insize <= (1250*1024)) {
-          png_options.num_iterations = 20;
+        else if (insize > (225*1024) && insize <= (350*1024)) {
+          png_options.num_iterations = 8;
         }
-        else if (insize > (1250*1024) && insize <= (1750*1024)) {
-          png_options.num_iterations = 10;
+        else if (insize > (350*1024) && insize <= (750*1024)) {
+          png_options.num_iterations = 5;
         }
-        else if (insize > (1750*1024) && insize <= (2500*1024)) {
-          png_options.num_iterations = 7;
+        else if (insize > (750*1024) && insize <= (1500*1024)) {
+          png_options.num_iterations = 3;
         }
         else {
-          png_options.num_iterations = 5;
+          png_options.num_iterations = 2;
         }
       }
       // report number of iterations definition to user
