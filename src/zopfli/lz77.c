@@ -111,7 +111,7 @@ void ZopfliStoreLitLenDist(unsigned short length, unsigned short dist,
     for (i = 0; i < ZOPFLI_NUM_LL; i++) {
       ZOPFLI_APPEND_DATA(
           origsize == 0 ? 0 : store->ll_counts[origsize - ZOPFLI_NUM_LL + i],
-          &store->ll_counts, &llsize);
+          &store->ll_counts, &llsize, ZOPFLI_DYN_ALLOC);
     }
   }
   if (origsize % ZOPFLI_NUM_D == 0) {
@@ -119,30 +119,30 @@ void ZopfliStoreLitLenDist(unsigned short length, unsigned short dist,
     for (i = 0; i < ZOPFLI_NUM_D; i++) {
       ZOPFLI_APPEND_DATA(
           origsize == 0 ? 0 : store->d_counts[origsize - ZOPFLI_NUM_D + i],
-          &store->d_counts, &dsize);
+          &store->d_counts, &dsize, ZOPFLI_DYN_ALLOC);
     }
   }
 
-  ZOPFLI_APPEND_DATA(length, &store->litlens, &store->size);
+  ZOPFLI_APPEND_DATA(length, &store->litlens, &store->size, ZOPFLI_DYN_ALLOC);
   store->size = origsize;
-  ZOPFLI_APPEND_DATA(dist, &store->dists, &store->size);
+  ZOPFLI_APPEND_DATA(dist, &store->dists, &store->size, ZOPFLI_DYN_ALLOC);
   store->size = origsize;
-  ZOPFLI_APPEND_DATA(pos, &store->pos, &store->size);
+  ZOPFLI_APPEND_DATA(pos, &store->pos, &store->size, ZOPFLI_DYN_ALLOC);
   assert(length < 259);
 
   if (dist == 0) {
     store->size = origsize;
-    ZOPFLI_APPEND_DATA(length, &store->ll_symbol, &store->size);
+    ZOPFLI_APPEND_DATA(length, &store->ll_symbol, &store->size, ZOPFLI_DYN_ALLOC);
     store->size = origsize;
-    ZOPFLI_APPEND_DATA(0, &store->d_symbol, &store->size);
+    ZOPFLI_APPEND_DATA(0, &store->d_symbol, &store->size, ZOPFLI_DYN_ALLOC);
     store->ll_counts[llstart + length]++;
   } else {
     store->size = origsize;
     ZOPFLI_APPEND_DATA(ZopfliGetLengthSymbol(length),
-                       &store->ll_symbol, &store->size);
+                       &store->ll_symbol, &store->size, ZOPFLI_DYN_ALLOC);
     store->size = origsize;
     ZOPFLI_APPEND_DATA(ZopfliGetDistSymbol(dist),
-                       &store->d_symbol, &store->size);
+                       &store->d_symbol, &store->size, ZOPFLI_DYN_ALLOC);
     store->ll_counts[llstart + ZopfliGetLengthSymbol(length)]++;
     store->d_counts[dstart + ZopfliGetDistSymbol(dist)]++;
   }

@@ -27,6 +27,7 @@ basic deflate specification values and generic program options.
 
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 /* Minimum and maximum length that can be encoded in deflate. */
 #define ZOPFLI_MAX_MATCH 258
@@ -128,27 +129,36 @@ value: the value to append, type T
 data: pointer to the dynamic array to append to, type T**
 size: pointer to the size of the array to append to, type size_t*. This is the
 size that you consider the array to be, not the internal allocation size.
+alloc_size: size of the allocation. If this is >0, assume the data is statically allocated and fail if this is breached.
+If negative, assume dynamically allocated data and use the tricks already in play
 Precondition: allocated size of data is at least a power of two greater than or
 equal than *size.
+
 */
+#define ZOPFLI_DYN_ALLOC (-1)
+
 #ifdef __cplusplus /* C++ cannot assign void* from malloc to *data */
-#define ZOPFLI_APPEND_DATA(/* T */ value, /* T** */ data, /* size_t* */ size) {\
-  if (!((*size) & ((*size) - 1))) {\
+#define ZOPFLI_APPEND_DATA(/* T */ value, /* T** */ data, /* size_t* */ size, /* long long */ alloc_size) {\
+  if (alloc_size < 0 &&!((*size) & ((*size) - 1))) {\
     /*double alloc size if it's a power of two*/\
     void** data_void = reinterpret_cast<void**>(data);\
     *data_void = (*size) == 0 ? malloc(sizeof(**data))\
                               : realloc((*data), (*size) * 2 * sizeof(**data));\
-  }\
+  } else { \
+    assert(alloc_size < (long long) size);\
+  } \
   (*data)[(*size)] = (value);\
   (*size)++;\
 }
 #else /* C gives problems with strict-aliasing rules for (void**) cast */
-#define ZOPFLI_APPEND_DATA(/* T */ value, /* T** */ data, /* size_t* */ size) {\
-  if (!((*size) & ((*size) - 1))) {\
+#define ZOPFLI_APPEND_DATA(/* T */ value, /* T** */ data, /* size_t* */ size, /*long long */ alloc_size) {\
+  if (alloc_size < 0 && !((*size) & ((*size) - 1))) {\
     /*double alloc size if it's a power of two*/\
     (*data) = (*size) == 0 ? malloc(sizeof(**data))\
                            : realloc((*data), (*size) * 2 * sizeof(**data));\
-  }\
+  } else { \
+    assert(alloc_size < (long long) size);\
+  } \
   (*data)[(*size)] = (value);\
   (*size)++;\
 }

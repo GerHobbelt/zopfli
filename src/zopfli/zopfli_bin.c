@@ -109,7 +109,7 @@ static void CompressFile(const ZopfliOptions* options,
     return;
   }
 
-  ZopfliCompress(options, output_type, in, insize, &out, &outsize);
+  ZopfliCompress(options, output_type, in, insize, &out, &outsize, ZOPFLI_DYN_ALLOC);
 
   if (outfilename) {
     SaveFile(outfilename, out, outsize);

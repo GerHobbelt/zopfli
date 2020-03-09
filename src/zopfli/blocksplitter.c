@@ -127,9 +127,9 @@ static double SplitCost(size_t i, void* context) {
   return EstimateCost(c->lz77, c->start, i) + EstimateCost(c->lz77, i, c->end);
 }
 
-static void AddSorted(size_t value, size_t** out, size_t* outsize) {
+static void AddSorted(size_t value, size_t** out, size_t* outsize, long long alloc_size) {
   size_t i;
-  ZOPFLI_APPEND_DATA(value, out, outsize);
+  ZOPFLI_APPEND_DATA(value, out, outsize, alloc_size);
   for (i = 0; i + 1 < *outsize; i++) {
     if ((*out)[i] > value) {
       size_t j;
@@ -158,7 +158,7 @@ static void PrintBlockSplitPoints(const ZopfliLZ77Store* lz77,
     for (i = 0; i < lz77->size; i++) {
       size_t length = lz77->dists[i] == 0 ? 1 : lz77->litlens[i];
       if (lz77splitpoints[npoints] == i) {
-        ZOPFLI_APPEND_DATA(pos, &splitpoints, &npoints);
+        ZOPFLI_APPEND_DATA(pos, &splitpoints, &npoints, ZOPFLI_DYN_ALLOC);
         if (npoints == nlz77points) break;
       }
       pos += length;
@@ -251,7 +251,7 @@ void ZopfliBlockSplitLZ77(const ZopfliOptions* options,
     if (splitcost > origcost || llpos == lstart + 1 || llpos == lend) {
       done[lstart] = 1;
     } else {
-      AddSorted(llpos, splitpoints, npoints);
+      AddSorted(llpos, splitpoints, npoints, ZOPFLI_DYN_ALLOC);
       numblocks++;
     }
 
@@ -305,7 +305,7 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
     for (i = 0; i < store.size; i++) {
       size_t length = store.dists[i] == 0 ? 1 : store.litlens[i];
       if (lz77splitpoints[*npoints] == i) {
-        ZOPFLI_APPEND_DATA(pos, splitpoints, npoints);
+        ZOPFLI_APPEND_DATA(pos, splitpoints, npoints, ZOPFLI_DYN_ALLOC);
         if (*npoints == nlz77points) break;
       }
       pos += length;
@@ -325,7 +325,7 @@ void ZopfliBlockSplitSimple(const unsigned char* in,
                             size_t** splitpoints, size_t* npoints) {
   size_t i = instart;
   while (i < inend) {
-    ZOPFLI_APPEND_DATA(i, splitpoints, npoints);
+    ZOPFLI_APPEND_DATA(i, splitpoints, npoints, ZOPFLI_DYN_ALLOC);
     i += blocksize;
   }
   (void)in;

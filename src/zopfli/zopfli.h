@@ -85,7 +85,7 @@ outsize: pointer to the dynamic output array size
 */
 void ZopfliCompress(const ZopfliOptions* options, ZopfliFormat output_type,
                     const unsigned char* in, size_t insize,
-                    unsigned char** out, size_t* outsize);
+                    unsigned char** out, size_t* outsize, long long alloc_size);
 
 #ifdef __cplusplus
 }  // extern "C"

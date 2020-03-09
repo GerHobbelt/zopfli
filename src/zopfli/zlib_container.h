@@ -37,11 +37,13 @@ result to the output.
 options: global program options
 out: pointer to the dynamic output array to which the result is appended. Must
   be freed after use.
-outsize: pointer to the dynamic output array size.
+outsize: pointer to the output array.
+alloc_size: - size of output array allocation -- if negative, assume dynamic alloc & can be realloc'd 
+  If not, assume hard static allocation bound;
 */
 void ZopfliZlibCompress(const ZopfliOptions* options,
                         const unsigned char* in, size_t insize,
-                        unsigned char** out, size_t* outsize);
+                        unsigned char** out, size_t* outsize, long long alloc_size);
 
 #ifdef __cplusplus
 }  // extern "C"

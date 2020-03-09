@@ -83,37 +83,40 @@ static unsigned long CRC(const unsigned char* data, size_t size) {
 /* Compresses the data according to the gzip specification, RFC 1952. */
 void ZopfliGzipCompress(const ZopfliOptions* options,
                         const unsigned char* in, size_t insize,
-                        unsigned char** out, size_t* outsize) {
+                        unsigned char** out, size_t* outsize, long long alloc_size) {
   unsigned long crcvalue = CRC(in, insize);
   unsigned char bp = 0;
 
-  ZOPFLI_APPEND_DATA(31, out, outsize);  /* ID1 */
-  ZOPFLI_APPEND_DATA(139, out, outsize);  /* ID2 */
-  ZOPFLI_APPEND_DATA(8, out, outsize);  /* CM */
-  ZOPFLI_APPEND_DATA(0, out, outsize);  /* FLG */
-  /* MTIME */
-  ZOPFLI_APPEND_DATA(0, out, outsize);
-  ZOPFLI_APPEND_DATA(0, out, outsize);
-  ZOPFLI_APPEND_DATA(0, out, outsize);
-  ZOPFLI_APPEND_DATA(0, out, outsize);
+  // Unused for class project - AM
+  (void) alloc_size;
 
-  ZOPFLI_APPEND_DATA(2, out, outsize);  /* XFL, 2 indicates best compression. */
-  ZOPFLI_APPEND_DATA(3, out, outsize);  /* OS follows Unix conventions. */
+  ZOPFLI_APPEND_DATA(31, out, outsize, ZOPFLI_DYN_ALLOC);  /* ID1 */
+  ZOPFLI_APPEND_DATA(139, out, outsize, ZOPFLI_DYN_ALLOC);  /* ID2 */
+  ZOPFLI_APPEND_DATA(8, out, outsize, ZOPFLI_DYN_ALLOC);  /* CM */
+  ZOPFLI_APPEND_DATA(0, out, outsize, ZOPFLI_DYN_ALLOC);  /* FLG */
+  /* MTIME */
+  ZOPFLI_APPEND_DATA(0, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA(0, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA(0, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA(0, out, outsize, ZOPFLI_DYN_ALLOC);
+
+  ZOPFLI_APPEND_DATA(2, out, outsize, ZOPFLI_DYN_ALLOC);  /* XFL, 2 indicates best compression. */
+  ZOPFLI_APPEND_DATA(3, out, outsize, ZOPFLI_DYN_ALLOC);  /* OS follows Unix conventions. */
 
   ZopfliDeflate(options, 2 /* Dynamic block */, 1,
-                in, insize, &bp, out, outsize);
+                in, insize, &bp, out, outsize, ZOPFLI_DYN_ALLOC);
 
   /* CRC */
-  ZOPFLI_APPEND_DATA(crcvalue % 256, out, outsize);
-  ZOPFLI_APPEND_DATA((crcvalue >> 8) % 256, out, outsize);
-  ZOPFLI_APPEND_DATA((crcvalue >> 16) % 256, out, outsize);
-  ZOPFLI_APPEND_DATA((crcvalue >> 24) % 256, out, outsize);
+  ZOPFLI_APPEND_DATA(crcvalue % 256, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA((crcvalue >> 8) % 256, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA((crcvalue >> 16) % 256, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA((crcvalue >> 24) % 256, out, outsize, ZOPFLI_DYN_ALLOC);
 
   /* ISIZE */
-  ZOPFLI_APPEND_DATA(insize % 256, out, outsize);
-  ZOPFLI_APPEND_DATA((insize >> 8) % 256, out, outsize);
-  ZOPFLI_APPEND_DATA((insize >> 16) % 256, out, outsize);
-  ZOPFLI_APPEND_DATA((insize >> 24) % 256, out, outsize);
+  ZOPFLI_APPEND_DATA(insize % 256, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA((insize >> 8) % 256, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA((insize >> 16) % 256, out, outsize, ZOPFLI_DYN_ALLOC);
+  ZOPFLI_APPEND_DATA((insize >> 24) % 256, out, outsize, ZOPFLI_DYN_ALLOC);
 
   if (options->verbose) {
     fprintf(stderr,
