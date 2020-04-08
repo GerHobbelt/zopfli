@@ -1,0 +1,12 @@
+# zopfli stuff
+*.so.*
+*.a
+log/*
+obj/*
+zopfli
+zopfli.zlib
+zopflipng
+
+# profiling
+gmon.out
+
