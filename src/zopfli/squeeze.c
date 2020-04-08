@@ -443,86 +443,116 @@ static double LZ77OptimalRun(ZopfliBlockState* s,
   return cost;
 }
 
+/*
+ * OMP Parallel parameters
+ */
+#ifndef LZ77_OPTIMAL_NUM_T
+  #define LZ77_OPTIMAL_NUM_T 4
+#endif
+
 void ZopfliLZ77Optimal(ZopfliBlockState *s,
                        const unsigned char* in, size_t instart, size_t inend,
                        int numiterations,
                        ZopfliLZ77Store* store) {
   /* Dist to get to here with smallest cost. */
-  size_t blocksize = inend - instart;
-  unsigned short* length_array =
-      (unsigned short*)malloc(sizeof(unsigned short) * (blocksize + 1));
-  unsigned short* path = 0;
-  size_t pathsize = 0;
-  ZopfliLZ77Store currentstore;
-  ZopfliHash hash;
-  ZopfliHash* h = &hash;
-  SymbolStats stats, beststats, laststats;
+  const size_t blocksize = inend - instart;
+  
+  SymbolStats beststats;
   int i;
-  float* costs = (float*)malloc(sizeof(float) * (blocksize + 1));
-  double cost;
   double bestcost = ZOPFLI_LARGE_FLOAT;
-  double lastcost = 0;
-  /* Try randomizing the costs a bit once the size stabilizes. */
-  RanState ran_state;
-  int lastrandomstep = -1;
 
-  if (!costs) exit(-1); /* Allocation failed. */
-  if (!length_array) exit(-1); /* Allocation failed. */
+  // Allocate thread private variables
+  {
+    unsigned short* t_length_array =
+      (unsigned short*)malloc(sizeof(unsigned short) * (blocksize + 1));
+    unsigned short* t_path = 0;
+    size_t t_pathsize = 0;
+    ZopfliLZ77Store t_currentstore;
+    ZopfliHash t_hash;
+    SymbolStats t_stats,  t_laststats;
+    double t_cost = ZOPFLI_LARGE_FLOAT;
+    double t_lastcost = ZOPFLI_LARGE_FLOAT;
 
-  InitRanState(&ran_state);
-  InitStats(&stats);
-  ZopfliInitLZ77Store(in, &currentstore);
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
+    /* Try randomizing the costs a bit off the bat to take advantage of the parallelism */
+    RanState t_ran_state;
+    int t_lastrandomstep = -1;
+    float* t_costs = (float*)malloc(sizeof(float) * (blocksize + 1));
 
-  /* Do regular deflate, then loop multiple shortest path runs, each time using
-  the statistics of the previous run. */
+    if (!t_costs) exit(-1); /* Allocation failed. */
+    if (!length_array) exit(-1); /* Allocation failed. */
 
-  /* Initial run. */
-  ZopfliLZ77Greedy(s, in, instart, inend, &currentstore, h);
-  GetStatistics(&currentstore, &stats);
+    InitRanState(&t_ran_state);
+    // TODO Add TID to each ran_state variable for divergence
+    InitStats(&t_stats);
+    ZopfliInitLZ77Store(in, &t_currentstore);
+    ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, &t_hash);
 
-  /* Repeat statistics with each time the cost model from the previous stat
-  run. */
-  for (i = 0; i < numiterations; i++) {
-    ZopfliCleanLZ77Store(&currentstore);
-    ZopfliInitLZ77Store(in, &currentstore);
-    LZ77OptimalRun(s, in, instart, inend, &path, &pathsize,
-                   length_array, GetCostStat, (void*)&stats,
-                   &currentstore, h, costs);
-    cost = ZopfliCalculateBlockSize(&currentstore, 0, currentstore.size, 2);
-    if (s->options->verbose_more || (s->options->verbose && cost < bestcost)) {
-      fprintf(stderr, "Iteration %d: %d bit\n", i, (int) cost);
+    /* Do regular deflate on thread 0, 
+    then loop multiple batches of shortest path runs with randomized stats,
+    each time using the best statistics of the previous batch. */
+
+    /* Initial run. */
+    // TODO if tid == 0
+      ZopfliLZ77Greedy(s, in, instart, inend, &t_currentstore, &t_hash);
+      GetStatistics(&t_currentstore, &t_stats);
+      // TODO broadcast stats
+    // TODO else
+      // TODO receive stats
+
+    /* Repeat statistics with each time the cost model from the previous stat
+    run. */
+    for (i = 0; i < numiterations / LZ77_OPTIMAL_NUM_T; i++) {
+      ZopfliCleanLZ77Store(&t_currentstore);
+      ZopfliInitLZ77Store(in, &t_currentstore);
+      LZ77OptimalRun(s, in, instart, inend, &t_path, &t_pathsize,
+                   t_length_array, GetCostStat, (void*)&t_stats,
+                   &t_currentstore, &t_hash, t_costs);
+      t_cost = ZopfliCalculateBlockSize(&t_currentstore, 0, t_currentstore.size, 2);
+      if (s->options->verbose_more || (s->options->verbose && t_cost < bestcost)) {
+        fprintf(stderr, "Iteration %d: %d bit\n", i, (int) t_cost);
+      }
+      // TODO barrier
+      // TODO OMP Min Reducs
+      if (t_cost < bestcost) {
+        // TODO Only on the best thread.
+        /* Copy to the output store. */
+        ZopfliCopyLZ77Store(&t_currentstore, store);
+        CopyStats(&t_stats, &beststats);
+        bestcost = t_cost;
+      }
+
+      // TODO barrier
+      CopyStats(&t_stats, &t_laststats);
+      ClearStatFreqs(&t_stats);
+      GetStatistics(&t_currentstore, &t_stats);
+
+      // TODO experiment with randomizing and doing the last weighted stats variable.
+      if (t_lastrandomstep != -1) {
+        /* This makes it converge slower but better. Do it only once the
+        randomness kicks in so that if the user does few iterations, it gives a
+        better result sooner. */
+        AddWeighedStatFreqs(&t_stats, 1.0, &t_laststats, 0.5, &t_stats);
+        CalculateStatistics(&t_stats);
+      }
+
+      // Help figure out the convergance effectiveness.
+      DEBUG_PRINT(("Iteration: %d, cost: %f, bestCost: %f\n", i, t_cost, t_bestcost));
+
+      if (i > 5 && t_cost == t_lastcost) {
+        CopyStats(&beststats, &t_stats);
+        RandomizeStatFreqs(&t_ran_state, &t_stats);
+        CalculateStatistics(&t_stats);
+        t_lastrandomstep = i;
+      }
+      t_lastcost = t_cost;
     }
-    if (cost < bestcost) {
-      /* Copy to the output store. */
-      ZopfliCopyLZ77Store(&currentstore, store);
-      CopyStats(&stats, &beststats);
-      bestcost = cost;
-    }
-    CopyStats(&stats, &laststats);
-    ClearStatFreqs(&stats);
-    GetStatistics(&currentstore, &stats);
-    if (lastrandomstep != -1) {
-      /* This makes it converge slower but better. Do it only once the
-      randomness kicks in so that if the user does few iterations, it gives a
-      better result sooner. */
-      AddWeighedStatFreqs(&stats, 1.0, &laststats, 0.5, &stats);
-      CalculateStatistics(&stats);
-    }
-    if (i > 5 && cost == lastcost) {
-      CopyStats(&beststats, &stats);
-      RandomizeStatFreqs(&ran_state, &stats);
-      CalculateStatistics(&stats);
-      lastrandomstep = i;
-    }
-    lastcost = cost;
-  }
 
-  free(length_array);
-  free(path);
-  free(costs);
-  ZopfliCleanLZ77Store(&currentstore);
-  ZopfliCleanHash(h);
+  free(t_length_array);
+  free(t_path);
+  free(t_costs);
+  ZopfliCleanLZ77Store(&t_currentstore);
+  ZopfliCleanHash(&t_hash);
+ } // omp parallel
 }
 
 void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,
@@ -557,4 +587,5 @@ void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,
   free(path);
   free(costs);
   ZopfliCleanHash(h);
+
 }

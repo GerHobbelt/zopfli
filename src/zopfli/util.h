@@ -29,6 +29,13 @@ basic deflate specification values and generic program options.
 #include <stdlib.h>
 #include <assert.h>
 
+/* Prints for debug builds */
+#ifdef DEBUG
+# define DEBUG_PRINT(x) printf x
+#else
+# define DEBUG_PRINT(x) do {} while (0)
+#endif
+
 /* Minimum and maximum length that can be encoded in deflate. */
 #define ZOPFLI_MAX_MATCH 258
 #define ZOPFLI_MIN_MATCH 3
