@@ -9,4 +9,5 @@ zopflipng
 
 # profiling
 gmon.out
+*prof_report*
 

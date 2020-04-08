@@ -1,8 +1,9 @@
 CC ?= gcc
 CXX ?= g++
 
-override CFLAGS := -W -std=c99 -Wall -Wextra -pedantic -lm -O3 -Wno-unused-function -fPIC $(CFLAGS)
-override CXXFLAGS := -W  -Wall -Wextra  -pedantic -O3 -fPIC $(CXXFLAGS)
+# AM - add -g for perf symbols and add -pg for gprof
+override CFLAGS := -g -pg -W -Wall -Wextra -ansi -pedantic -lm -O3 -Wno-unused-function -fPIC $(CFLAGS)
+override CXXFLAGS := -g -pg -W -Wall -Wextra -ansi -pedantic -O3 -fPIC $(CXXFLAGS)
 
 ZOPFLILIB_SRC = src/zopfli/blocksplitter.c src/zopfli/cache.c\
                 src/zopfli/deflate.c src/zopfli/gzip_container.c\
