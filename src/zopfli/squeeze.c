@@ -22,6 +22,7 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <omp.h>
 
 #include "blocksplitter.h"
 #include "deflate.h"
@@ -198,6 +199,10 @@ static double GetCostModelMinCost(CostModelFun* costmodel, void* costcontext) {
 }
 
 static size_t zopfli_min(size_t a, size_t b) {
+  return a < b ? a : b;
+}
+
+static double zopfli_dmin(double a, double b) {
   return a < b ? a : b;
 }
 
@@ -460,23 +465,47 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   SymbolStats beststats;
   int i;
   double bestcost = ZOPFLI_LARGE_FLOAT;
+  double best_iter_cost= ZOPFLI_LARGE_FLOAT; /* best cost of the iteration */
+  SymbolStats * broadcast_stats;
+  /*
+   * thread private declarations initialized up here for C90 reasons
+   */
+  int t_i;
+  ZopfliLZ77Store t_currentstore;
+  ZopfliHash t_hash;
+  SymbolStats t_stats,  t_laststats;
+  unsigned short* t_path;
+  size_t t_pathsize;
+  double t_cost;
+  double t_lastcost;
+  int t_my_tid;
+  unsigned short* t_length_array;
+  RanState t_ran_state;
+
+  int t_lastrandomstep;
+  float* t_costs;
+
+  /* TODO s is the block state -- should this be parallel or copied? */
 
   /* Allocate thread private variables*/
+  #pragma omp parallel num_threads(LZ77_OPTIMAL_NUM_T) \
+    default(none) \
+    private(t_length_array, t_path, t_pathsize, t_currentstore, t_hash, \
+      t_stats, t_laststats, t_cost, t_lastcost, t_ran_state, t_lastrandomstep, \
+      t_costs, t_my_tid, t_i) \
+    shared(beststats, i, bestcost, broadcast_stats, best_iter_cost, in, instart, \
+            inend, numiterations, s, stderr, store)
   {
-    unsigned short* t_length_array =
-      (unsigned short*)malloc(sizeof(unsigned short) * (blocksize + 1));
-    unsigned short* t_path = 0;
-    size_t t_pathsize = 0;
-    ZopfliLZ77Store t_currentstore;
-    ZopfliHash t_hash;
-    SymbolStats t_stats,  t_laststats;
-    double t_cost = ZOPFLI_LARGE_FLOAT;
-    double t_lastcost = ZOPFLI_LARGE_FLOAT;
+    t_length_array = (unsigned short*)malloc(sizeof(unsigned short) * (blocksize + 1));
+    t_path = 0;
+    t_pathsize = 0;
+    t_cost = ZOPFLI_LARGE_FLOAT;
+    t_lastcost = ZOPFLI_LARGE_FLOAT;
+    t_my_tid = omp_get_thread_num();
 
     /* Try randomizing the costs a bit off the bat to take advantage of the parallelism */
-    RanState t_ran_state;
-    int t_lastrandomstep = -1;
-    float* t_costs = (float*)malloc(sizeof(float) * (blocksize + 1));
+    t_lastrandomstep = -1;
+    t_costs = (float*)malloc(sizeof(float) * (blocksize + 1));
 
     if (!t_costs) exit(-1); /* Allocation failed. */
     if (!t_length_array) exit(-1); /* Allocation failed. */
@@ -492,36 +521,59 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
     each time using the best statistics of the previous batch. */
 
     /* Initial run. */
-    /* TODO if tid == 0*/
+    if (t_my_tid == 0) {
       ZopfliLZ77Greedy(s, in, instart, inend, &t_currentstore, &t_hash);
       GetStatistics(&t_currentstore, &t_stats);
-      /* TODO broadcast stats*/
-    /* TODO else*/
-      /* TODO receive stats*/
-
-    /* Repeat statistics with each time the cost model from the previous stat
-    run. */
-    for (i = 0; i < numiterations / LZ77_OPTIMAL_NUM_T; i++) {
-      ZopfliCleanLZ77Store(&t_currentstore);
-      ZopfliInitLZ77Store(in, &t_currentstore);
-      LZ77OptimalRun(s, in, instart, inend, &t_path, &t_pathsize,
-                   t_length_array, GetCostStat, (void*)&t_stats,
-                   &t_currentstore, &t_hash, t_costs);
-      t_cost = ZopfliCalculateBlockSize(&t_currentstore, 0, t_currentstore.size, 2);
-      if (s->options->verbose_more || (s->options->verbose && t_cost < bestcost)) {
-        fprintf(stderr, "Iteration %d: %d bit\n", i, (int) t_cost);
+      /* broadcast stats*/
+      broadcast_stats = &t_stats;
+    }
+    #pragma omp barrier
+      /* receive stats -- is there a better way to do this with a copy clause for a struct? */
+    #pragma omp parallel for
+    for (i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+      if (&t_stats != broadcast_stats) {
+        memcpy(&t_stats, broadcast_stats, sizeof(t_stats));
       }
-      /* TODO barrier*/
-      /* TODO OMP Min Reducs*/
-      if (t_cost < bestcost) {
-        /* TODO Only on the best thread.*/
-        /* Copy to the output store. */
-        ZopfliCopyLZ77Store(&t_currentstore, store);
-        CopyStats(&t_stats, &beststats);
-        bestcost = t_cost;
+    }
+
+    #pragma omp barrier
+
+    /* Repeat statistics with each time the cost model from the previous stat run. 
+      Each thread runs t_i times*/
+    for (t_i = 0; t_i < numiterations / LZ77_OPTIMAL_NUM_T; t_i++) {
+
+      /* Run the Optimal run with slightly different stats on each thread. */
+      #pragma omp parallel for
+      for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+        ZopfliCleanLZ77Store(&t_currentstore);
+        ZopfliInitLZ77Store(in, &t_currentstore);
+        LZ77OptimalRun(s, in, instart, inend, &t_path, &t_pathsize,
+                    t_length_array, GetCostStat, (void*)&t_stats,
+                    &t_currentstore, &t_hash, t_costs);
+        t_cost = ZopfliCalculateBlockSize(&t_currentstore, 0, t_currentstore.size, 2);
+        if (s->options->verbose_more || (s->options->verbose && t_cost < bestcost)) {
+          fprintf(stderr, "Iteration %d: %d bit\n", i, (int) t_cost);
+        }
+      } /* OMP barrier*/
+
+      /* OMP Min Reduce*/
+      #pragma omp parallel for reduction(min:best_iter_cost)
+      for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+        best_iter_cost = zopfli_min(best_iter_cost, t_cost);
       }
 
-      /* TODO barrier*/
+      /* OMP Min Reduce*/
+      #pragma omp parallel for reduction(min:best_iter_cost)
+      for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+        if (t_cost == best_iter_cost && t_cost < bestcost) {
+          /* TODO Can this be merged with the last loop?*/
+          /* Copy to the output store. */
+          ZopfliCopyLZ77Store(&t_currentstore, store);
+          CopyStats(&t_stats, &beststats);
+          bestcost = t_cost;
+        }
+      }
+
       CopyStats(&t_stats, &t_laststats);
       ClearStatFreqs(&t_stats);
       GetStatistics(&t_currentstore, &t_stats);
