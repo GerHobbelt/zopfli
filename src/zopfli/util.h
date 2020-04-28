@@ -93,9 +93,9 @@ Good value: e.g. 8192.
 
 /*
 Whether to use the longest match cache for ZopfliFindLongestMatch. This cache
-consumes a lot of memory but speeds it up. No effect on compression size.
+consumes a lot of memory but speeds it up, and wrecks data parallelism. No effect on compression size.
 */
-#define ZOPFLI_LONGEST_MATCH_CACHE
+/* #define ZOPFLI_LONGEST_MATCH_CACHE */
 
 /*
 Enable to remember amount of successive identical bytes in the hash chain for
@@ -152,7 +152,7 @@ equal than *size.
     *data_void = (*size) == 0 ? malloc(sizeof(**data))\
                               : realloc((*data), (*size) * 2 * sizeof(**data));\
   } else { \
-    assert(alloc_size < (long long) size);\
+    assert(alloc_size < (long) size);\
   } \
   (*data)[(*size)] = (value);\
   (*size)++;\
@@ -164,7 +164,7 @@ equal than *size.
     (*data) = (*size) == 0 ? malloc(sizeof(**data))\
                            : realloc((*data), (*size) * 2 * sizeof(**data));\
   } else { \
-    assert(alloc_size < (long long) size);\
+    assert(alloc_size < (long) size);\
   } \
   (*data)[(*size)] = (value);\
   (*size)++;\

@@ -395,7 +395,6 @@ static void StoreInLongestMatchCache(ZopfliBlockState* s,
       s->lmc->dist[lmcpos] != 0);
 
   if (s->lmc && limit == ZOPFLI_MAX_MATCH && sublen && !cache_available) {
-    /* AM TODO - this block is all thread critical*/
     assert(s->lmc->length[lmcpos] == 1 && s->lmc->dist[lmcpos] == 0);
     s->lmc->dist[lmcpos] = length < ZOPFLI_MIN_MATCH ? 0 : distance;
     s->lmc->length[lmcpos] = length < ZOPFLI_MIN_MATCH ? 0 : length;
@@ -403,6 +402,7 @@ static void StoreInLongestMatchCache(ZopfliBlockState* s,
     ZopfliSublenToCache(sublen, lmcpos, length, s->lmc);
   }
 }
+/* Longet_MATCH_CACHE */
 #endif
 
 void ZopfliFindLongestMatch(ZopfliBlockState* s, const ZopfliHash* h,

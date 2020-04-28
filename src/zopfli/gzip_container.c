@@ -87,7 +87,6 @@ void ZopfliGzipCompress(const ZopfliOptions* options,
   unsigned long crcvalue = CRC(in, insize);
   unsigned char bp = 0;
 
-  // Unused for class project - AM
   (void) alloc_size;
 
   ZOPFLI_APPEND_DATA(31, out, outsize, ZOPFLI_DYN_ALLOC);  /* ID1 */

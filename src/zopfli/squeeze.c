@@ -437,6 +437,7 @@ static double LZ77OptimalRun(ZopfliBlockState* s,
     unsigned short* length_array, CostModelFun* costmodel,
     void* costcontext, ZopfliLZ77Store* store,
     ZopfliHash* h, float* costs) {
+
   double cost = GetBestLengths(s, in, instart, inend, costmodel,
                 costcontext, length_array, h, costs);
   free(*path);
@@ -463,7 +464,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   const size_t blocksize = inend - instart;
   
   SymbolStats beststats;
-  int i;
+  int i=0;
   double bestcost = ZOPFLI_LARGE_FLOAT;
   double best_iter_cost= ZOPFLI_LARGE_FLOAT; /* best cost of the iteration */
   SymbolStats * broadcast_stats;
@@ -484,6 +485,9 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
 
   int t_lastrandomstep;
   float* t_costs;
+#ifdef ZOPFLI_LONGEST_MATCH_CACHE
+  assert(0); /* not allowed with OMP */
+#endif 
 
   /* TODO s is the block state -- should this be parallel or copied? */
 
@@ -552,7 +556,8 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
                     &t_currentstore, &t_hash, t_costs);
         t_cost = ZopfliCalculateBlockSize(&t_currentstore, 0, t_currentstore.size, 2);
         if (s->options->verbose_more || (s->options->verbose && t_cost < bestcost)) {
-          fprintf(stderr, "Iteration %d: %d bit\n", i, (int) t_cost);
+          fprintf(stderr, "threads,Iteration: %d,%d %d cost\n", t_my_tid, i, (int) t_cost);
+          fprintf(stderr, "threads, %d, tpath %p, tpathsize %lu, tl\n", t_my_tid, t_path, t_pathsize);
         }
       } /* OMP barrier*/
 
@@ -588,9 +593,9 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
       }
 
       /* Help figure out the convergance effectiveness.*/
-      DEBUG_PRINT(("Iteration: %d, cost: %f, bestCost: %f\n", i, t_cost, t_bestcost));
+      DEBUG_PRINT(("thread,Iteration:%d,%d, cost: %f, bestCost: %f\n", t_my_tid, i, t_cost, bestcost));
 
-      if (i > 5 && t_cost == t_lastcost) {
+      if (t_i > 5 && t_cost == t_lastcost) {
         CopyStats(&beststats, &t_stats);
         RandomizeStatFreqs(&t_ran_state, &t_stats);
         CalculateStatistics(&t_stats);

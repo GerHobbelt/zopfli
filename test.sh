@@ -14,5 +14,5 @@ if [ $? -ne 0 ] ; then
     echo -e "\nREGRESSION ALERT \n"
 else
     echo -e "\n\tno regressions ~yet~\n"
+    rm -f testme
 fi 
-rm -f testme
