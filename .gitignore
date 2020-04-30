@@ -1,4 +1,4 @@
-# zopfli stuff
+# zopfli binary stuff
 *.so.*
 *.a
 log/*
@@ -6,8 +6,12 @@ obj/*
 zopfli
 zopfli.zlib
 zopflipng
+# Supercloud output files
+par_zopfli*
+zopfli.amac*
 
 # profiling
 gmon.out
 *prof_report*
+results/
 
