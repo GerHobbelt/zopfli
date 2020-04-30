@@ -543,45 +543,69 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
     #pragma omp barrier
 
     /* Repeat statistics with each time the cost model from the previous stat run. 
-      Each thread runs t_i times*/
-    for (t_i = 0; t_i < numiterations / LZ77_OPTIMAL_NUM_T; t_i++) {
+      Each thread runs t_i times TODO - AM drop the number of iterations*/
+    for (t_i = 0; t_i < numiterations; t_i++) {
 
       /* Run the Optimal run with slightly different stats on each thread. */
       #pragma omp parallel for
       for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+        DEBUG_PRINT(("starting optimal course thread,ti,i:%d,%d,%d \n", t_my_tid, t_i, i));
         ZopfliCleanLZ77Store(&t_currentstore);
         ZopfliInitLZ77Store(in, &t_currentstore);
         LZ77OptimalRun(s, in, instart, inend, &t_path, &t_pathsize,
                     t_length_array, GetCostStat, (void*)&t_stats,
                     &t_currentstore, &t_hash, t_costs);
         t_cost = ZopfliCalculateBlockSize(&t_currentstore, 0, t_currentstore.size, 2);
+        DEBUG_PRINT(("Calculated Cost: threads,ti,i,cost: %d,%d,%d,%f\n", t_my_tid, t_i, i, t_cost));
         if (s->options->verbose_more || (s->options->verbose && t_cost < bestcost)) {
-          fprintf(stderr, "threads,Iteration: %d,%d %d cost\n", t_my_tid, i, (int) t_cost);
-          fprintf(stderr, "threads, %d, tpath %p, tpathsize %lu, tl\n", t_my_tid, t_path, t_pathsize);
+            (void)0;
+            DEBUG_PRINT(("Found new best cost: threads,ti,i,cost: %d,%d,%d,%f\n", t_my_tid, t_i, i, t_cost));
+            /*
+            fprintf(stderr, "Calculated Cost: threads,ti,i,cost: %d,%d %d %f\n", t_my_tid, t_i, i, t_cost);
+            fprintf(stderr, "threads, %d, tpath %p, tpathsize %lu, tl\n", t_my_tid, t_path, t_pathsize);
+            */
         }
       } /* OMP barrier*/
 
+       best_iter_cost= ZOPFLI_LARGE_FLOAT; /* best cost of the iteration */
+      #pragma omp barrier
       /* OMP Min Reduce*/
+      DEBUG_PRINT(("About to reduce: thread,ti,cost: %d,%d,%f\n", t_my_tid, t_i, t_cost));
       #pragma omp parallel for reduction(min:best_iter_cost)
       for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
-        best_iter_cost = zopfli_min(best_iter_cost, t_cost);
+          /* TODO this is not reducing (or if it is, its reducing too well) */
+        best_iter_cost = zopfli_dmin(best_iter_cost, t_cost);
       }
 
+      /* Format spacing */
+      DEBUG_PRINT(("\n"));
+
       /* OMP Min Reduce*/
-      #pragma omp parallel for reduction(min:best_iter_cost)
-      for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+      #pragma omp parallel
+      {
+      DEBUG_PRINT(("evaluating cost to bestitercost(%f): thread,Iteration,cost:%d,%d,%f\n",best_iter_cost, t_my_tid, t_i, t_cost));
         if (t_cost == best_iter_cost && t_cost < bestcost) {
-          /* TODO Can this be merged with the last loop?*/
-          /* Copy to the output store. */
-          ZopfliCopyLZ77Store(&t_currentstore, store);
-          CopyStats(&t_stats, &beststats);
-          bestcost = t_cost;
+            DEBUG_PRINT(("Entering CriticalZone: thread,Iteration,cost:%d,%d,%f\n", t_my_tid, t_i, t_cost));
+            #pragma omp critical (copy_to_best)
+            {
+                /* TODO Can this be merged with the last loop?*/
+                /* Copy to the output store. */
+                fprintf(stderr, "threads,Iteration: %d,ti %d copying new best cost %f\n", t_my_tid, t_i, t_cost);
+                ZopfliCopyLZ77Store(&t_currentstore, store);
+                /** This! don't do this */
+                CopyStats(&t_stats, &beststats);
+                bestcost = t_cost;
+            }
+            DEBUG_PRINT(("Leaving CriticalZone: thread,Iteration,cost:%d,%d,%f\n", t_my_tid, t_i, t_cost));
         }
       }
 
       CopyStats(&t_stats, &t_laststats);
       ClearStatFreqs(&t_stats);
       GetStatistics(&t_currentstore, &t_stats);
+
+      /* Format spacing */
+      DEBUG_PRINT(("\n"));
 
       /* TODO experiment with randomizing and doing the last weighted stats variable.*/
       if (t_lastrandomstep != -1) {
@@ -609,7 +633,20 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   free(t_costs);
   ZopfliCleanLZ77Store(&t_currentstore);
   ZopfliCleanHash(&t_hash);
- } /* omp parallel*/
+  } /* omp parallel*/
+
+  /* TODO print stats to get a frequency distribution ish for montecarlo? */
+#ifdef DEBUG
+  DEBUG_PRINT((" litlens:\n"));
+  for(i = 0; i < ZOPFLI_NUM_LL; i++) {
+      DEBUG_PRINT(("%zu ", beststats.litlens[i]));
+  }
+  DEBUG_PRINT(("\ndists:\n"));
+  for(i = 0; i < ZOPFLI_NUM_D; i++) {
+      DEBUG_PRINT(("%zu ", beststats.dists[i]));
+  }
+  DEBUG_PRINT(("\n\n"));
+#endif
 }
 
 void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,

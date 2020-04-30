@@ -88,7 +88,11 @@ void ZopfliCalculateEntropy(const size_t* count, size_t n, double* bitlengths) {
     instead of zero (e.g. -5.973954e-17 with gcc 4.1.2 on Ubuntu 11.4). Clamp
     it to zero. These floating point imprecisions do not affect the cost model
     significantly so this is ok. */
+
+    /* AM - this was just a test to look for the assert failure -- but its a race condition
     if (bitlengths[i] < 0 && bitlengths[i] > -1e-5) bitlengths[i] = 0;
+       DEBUG_PRINT(("bl: i %d bl[i] %f, counnt[i] %d\n", i, bitlengths[i], count[i]));
+    */
     assert(bitlengths[i] >= 0);
   }
 }

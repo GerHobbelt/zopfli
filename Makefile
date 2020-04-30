@@ -4,7 +4,7 @@ CXX ?= g++
 # AM - add -g for gdb/perf symbols and add -pg for gprof
 # add -fopenmp
 override CFLAGS := -DDEBUG -g -pg -W -Wall -Wextra -ansi -pedantic -lm -O3 -Wno-unused-function -fPIC -fopenmp $(CFLAGS) 
-override CXXFLAGS := -g -pg -W -Wall -Wextra -ansi -pedantic -O3 -fPIC -fopenmp $(CXXFLAGS)
+override CXXFLAGS := -DDEBUG -g -pg -W -Wall -Wextra -ansi -pedantic -O3 -fPIC -fopenmp $(CXXFLAGS)
 
 ZOPFLILIB_SRC = src/zopfli/blocksplitter.c src/zopfli/cache.c\
                 src/zopfli/deflate.c src/zopfli/gzip_container.c\
