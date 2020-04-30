@@ -171,5 +171,24 @@ equal than *size.
 }
 #endif
 
+/*
+ * AM - OMP Course project parallel parameters
+*/
 
+/** How many threads are spawned in the parallelizable section*/
+#ifndef AM_OMP_THREAD_NUM
+  #define AM_OMP_THREAD_NUM 4
+#endif
+
+/* A randomization factor proportional to the random divergance between threads -- higher = more divergent*/
+#ifndef AM_OMP_T_RAND_NUM
+  #define AM_OMP_T_RAND_NUM 1
+#endif
+
+/* A randomization factor *inversely* proportional to the random divergance between threads -- higher = less divergent*/
+#ifndef AM_OMP_T_RAND_DENOM
+  #define AM_OMP_T_RAND_DENOM 20
+#endif
+
+ 
 #endif  /* ZOPFLI_UTIL_H_ */

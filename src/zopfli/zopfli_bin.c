@@ -28,6 +28,8 @@ decompressor.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
+#include "util.h"
 
 #include "deflate.h"
 #include "gzip_container.h"
@@ -188,6 +190,12 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  /* AM-OMP get start time */
+  struct timeval start_t;
+  struct timeval end_t;
+  double elapsed_t;
+  gettimeofday (&start_t, NULL);
+
   for (i = 1; i < argc; i++) {
     if (argv[i][0] != '-') {
       char* outfilename;
@@ -209,6 +217,10 @@ int main(int argc, char* argv[]) {
       free(outfilename);
     }
   }
+  /* end time */
+  gettimeofday (&end_t, NULL);
+  elapsed_t = (double)((end_t.tv_sec*1000000 + end_t.tv_usec)-(start_t.tv_sec*1000000 + start_t.tv_usec)); /* time in us (microseconds) */
+  printf ("RUNTIME (threads,r_n,r_d,iters) (%d,%d,%d,%d) %fs\n", AM_OMP_THREAD_NUM, AM_OMP_T_RAND_NUM, AM_OMP_T_RAND_DENOM, elapsed_t/1000000);
 
   if (!filename) {
     fprintf(stderr,
