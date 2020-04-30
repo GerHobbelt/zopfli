@@ -6,6 +6,7 @@ obj/*
 zopfli
 zopfli.zlib
 zopflipng
+par_zopfli*
 
 # profiling
 gmon.out

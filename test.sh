@@ -4,7 +4,9 @@ rm -f ../enwik8.mini.zlib ../enwik8.mini.gz
 
 mkdir -p log
 
-./zopfli  -v ../enwik8.mini  2>&1 | tee log/"zop_out.$(date +%s)"
+# V for verbose
+#./zopfli  -v ../enwik8.mini  2>&1 | tee log/"zop_out.$(date +%s)"
+./zopfli  ../enwik8.mini  2>&1 | tee log/"zop_out.$(date +%s)"
 
 gunzip ../enwik8.mini.gz -c > testme
 

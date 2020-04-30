@@ -451,19 +451,8 @@ static double LZ77OptimalRun(ZopfliBlockState* s,
 }
 
 /*
- * OMP Parallel parameters
+ * OMP Parallel parameters are defined in util.h
  */
-#ifndef AM_OMP_THREAD_NUM
-  #define AM_OMP_THREAD_NUM 4
-#endif
-
-#ifndef AM_OMP_T_RAND_NUM
-  #define AM_OMP_T_RAND_NUM 1 
-#endif
-
-#ifndef AM_OMP_T_RAND_DENOM
-  #define AM_OMP_T_RAND_DENOM 20
-#endif
 
 void ZopfliLZ77Optimal(ZopfliBlockState *s,
                        const unsigned char* in, size_t instart, size_t inend,
@@ -610,7 +599,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
             {
                 /* TODO Can this be merged with the last loop?*/
                 /* Copy to the output store. */
-                fprintf(stderr, "threads,Iteration: %d,ti %d copying new best cost %f\n", t_my_tid, t_i, t_cost);
+                DEBUG_PRINT((stderr, "threads,Iteration: %d,ti %d copying new best cost %f\n", t_my_tid, t_i, t_cost));
                 ZopfliCopyLZ77Store(&t_currentstore, store);
                 /** This! don't do this */
                 CopyStats(&t_stats, &beststats);

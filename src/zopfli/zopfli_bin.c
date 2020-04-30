@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
   /* end time */
   gettimeofday (&end_t, NULL);
   elapsed_t = (double)((end_t.tv_sec*1000000 + end_t.tv_usec)-(start_t.tv_sec*1000000 + start_t.tv_usec)); /* time in us (microseconds) */
-  printf ("RUNTIME (threads,r_n,r_d,iters) (%d,%d,%d,%d) %fs\n", AM_OMP_THREAD_NUM, AM_OMP_T_RAND_NUM, AM_OMP_T_RAND_DENOM, elapsed_t/1000000);
+  printf ("RUNTIME (threads,r_n,r_d,iters) (%d,%d,%d,%d) %fs\n", AM_OMP_THREAD_NUM, AM_OMP_T_RAND_NUM, AM_OMP_T_RAND_DENOM, options.numiterations, elapsed_t/1000000);
 
   if (!filename) {
     fprintf(stderr,

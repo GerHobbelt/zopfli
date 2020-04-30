@@ -2,9 +2,10 @@ CC ?= gcc
 CXX ?= g++
 
 # AM - add -g for gdb/perf symbols and add -pg for gprof
+# AM - add -DDEBUG for Zopfli built in debug print statements
 # add -fopenmp
-override CFLAGS := -DDEBUG -g -pg -W -Wall -Wextra -ansi -pedantic -lm -O3 -Wno-unused-function -fPIC -fopenmp $(CFLAGS) 
-override CXXFLAGS := -DDEBUG -g -pg -W -Wall -Wextra -ansi -pedantic -O3 -fPIC -fopenmp $(CXXFLAGS)
+override CFLAGS :=  -W -Wall -Wextra -ansi -pedantic -lm -O3 -Wno-unused-function -fPIC -fopenmp $(CFLAGS) 
+override CXXFLAGS :=  -W -Wall -Wextra -ansi -pedantic -O3 -fPIC -fopenmp $(CXXFLAGS)
 
 ZOPFLILIB_SRC = src/zopfli/blocksplitter.c src/zopfli/cache.c\
                 src/zopfli/deflate.c src/zopfli/gzip_container.c\
