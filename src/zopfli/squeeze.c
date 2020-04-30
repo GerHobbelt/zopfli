@@ -94,16 +94,17 @@ static unsigned int Ran(RanState* state) {
   return (state->m_z << 16) + state->m_w;  /* 32-bit result. */
 }
 
-static void RandomizeFreqs(RanState* state, size_t* freqs, int n) {
+static void RandomizeFreqs(RanState* state, size_t* freqs, int n, int every, int out_of) {
   int i;
   for (i = 0; i < n; i++) {
-    if ((Ran(state) >> 4) % 3 == 0) freqs[i] = freqs[Ran(state) % n];
+    if ((Ran(state) >> 4) % out_of < every) freqs[i] = freqs[Ran(state) % n];
   }
 }
 
-static void RandomizeStatFreqs(RanState* state, SymbolStats* stats) {
-  RandomizeFreqs(state, stats->litlens, ZOPFLI_NUM_LL);
-  RandomizeFreqs(state, stats->dists, ZOPFLI_NUM_D);
+/* Switch *every* N out of *out_of* elements*/
+static void RandomizeStatFreqs(RanState* state, SymbolStats* stats, int every, int out_of) {
+  RandomizeFreqs(state, stats->litlens, ZOPFLI_NUM_LL, every, out_of);
+  RandomizeFreqs(state, stats->dists, ZOPFLI_NUM_D, every, out_of);
   stats->litlens[256] = 1;  /* End symbol. */
 }
 
@@ -452,8 +453,16 @@ static double LZ77OptimalRun(ZopfliBlockState* s,
 /*
  * OMP Parallel parameters
  */
-#ifndef LZ77_OPTIMAL_NUM_T
-  #define LZ77_OPTIMAL_NUM_T 4
+#ifndef AM_OMP_THREAD_NUM
+  #define AM_OMP_THREAD_NUM 4
+#endif
+
+#ifndef AM_OMP_T_RAND_NUM
+  #define AM_OMP_T_RAND_NUM 1 
+#endif
+
+#ifndef AM_OMP_T_RAND_DENOM
+  #define AM_OMP_T_RAND_DENOM 20
 #endif
 
 void ZopfliLZ77Optimal(ZopfliBlockState *s,
@@ -492,7 +501,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   /* TODO s is the block state -- should this be parallel or copied? */
 
   /* Allocate thread private variables*/
-  #pragma omp parallel num_threads(LZ77_OPTIMAL_NUM_T) \
+  #pragma omp parallel num_threads(AM_OMP_THREAD_NUM) \
     default(none) \
     private(t_length_array, t_path, t_pathsize, t_currentstore, t_hash, \
       t_stats, t_laststats, t_cost, t_lastcost, t_ran_state, t_lastrandomstep, \
@@ -528,13 +537,14 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
     if (t_my_tid == 0) {
       ZopfliLZ77Greedy(s, in, instart, inend, &t_currentstore, &t_hash);
       GetStatistics(&t_currentstore, &t_stats);
+      memcpy(&beststats, &t_stats, sizeof(t_stats));
       /* broadcast stats*/
       broadcast_stats = &t_stats;
     }
     #pragma omp barrier
       /* receive stats -- is there a better way to do this with a copy clause for a struct? */
     #pragma omp parallel for
-    for (i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+    for (i = 0; i < AM_OMP_THREAD_NUM; i++) {
       if (&t_stats != broadcast_stats) {
         memcpy(&t_stats, broadcast_stats, sizeof(t_stats));
       }
@@ -546,9 +556,19 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
       Each thread runs t_i times TODO - AM drop the number of iterations*/
     for (t_i = 0; t_i < numiterations; t_i++) {
 
+      /* Randomize the statistics slightly for each thread */
+      #pragma omp parallel for
+      for(i = 0; i < AM_OMP_THREAD_NUM; i++) {
+        CopyStats(&beststats, &t_stats);
+        /* Randomization is dependent on the thread - try 1 and 20*/
+        RandomizeStatFreqs(&t_ran_state, &t_stats, t_my_tid * AM_OMP_T_RAND_NUM, AM_OMP_T_RAND_DENOM);
+        CalculateStatistics(&t_stats);
+        t_lastrandomstep = i;
+      }
+
       /* Run the Optimal run with slightly different stats on each thread. */
       #pragma omp parallel for
-      for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+      for(i = 0; i < AM_OMP_THREAD_NUM; i++) {
         DEBUG_PRINT(("starting optimal course thread,ti,i:%d,%d,%d \n", t_my_tid, t_i, i));
         ZopfliCleanLZ77Store(&t_currentstore);
         ZopfliInitLZ77Store(in, &t_currentstore);
@@ -572,7 +592,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
       /* OMP Min Reduce*/
       DEBUG_PRINT(("About to reduce: thread,ti,cost: %d,%d,%f\n", t_my_tid, t_i, t_cost));
       #pragma omp parallel for reduction(min:best_iter_cost)
-      for(i = 0; i < LZ77_OPTIMAL_NUM_T; i++) {
+      for(i = 0; i < AM_OMP_THREAD_NUM; i++) {
           /* TODO this is not reducing (or if it is, its reducing too well) */
         best_iter_cost = zopfli_dmin(best_iter_cost, t_cost);
       }
@@ -618,13 +638,6 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
 
       /* Help figure out the convergance effectiveness.*/
       DEBUG_PRINT(("thread,Iteration:%d,%d, cost: %f, bestCost: %f\n", t_my_tid, i, t_cost, bestcost));
-
-      if (t_i > 5 && t_cost == t_lastcost) {
-        CopyStats(&beststats, &t_stats);
-        RandomizeStatFreqs(&t_ran_state, &t_stats);
-        CalculateStatistics(&t_stats);
-        t_lastrandomstep = i;
-      }
       t_lastcost = t_cost;
     }
 
