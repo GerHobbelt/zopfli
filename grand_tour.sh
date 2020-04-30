@@ -16,7 +16,7 @@ do
             make
             LLsub result_up.sh
             # just a guess at how long it will take
-            sleep 30
+            sleep 60
         done
     done
 done
