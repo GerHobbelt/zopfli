@@ -26,7 +26,7 @@
 #include "zopflipng_lib.h"
 
 // C.S.: define version changes here and in makefile
-#define ZOPFLIPNG_VERSION "2.2.0"
+#define ZOPFLIPNG_VERSION "2.3.0"
 
 // Returns directory path (including last slash) in dir, filename without
 // extension in file, extension (including the dot) in ext
