@@ -36,6 +36,7 @@ ZopfliPNGOptions::ZopfliPNGOptions()
   , lossy_transparent(false)
   , lossy_8bit(false)
   , auto_filter_strategy(true)
+  , keep_colortype(false)
   , use_zopfli(true)
   , num_iterations(15)
   , num_iterations_large(5)
@@ -203,13 +204,16 @@ unsigned TryOptimize(
       state.encoder.filter_strategy = LFS_BRUTE_FORCE;
       break;
     case kStrategyOne:
+      state.encoder.filter_strategy = LFS_ONE;
+      break;
     case kStrategyTwo:
+      state.encoder.filter_strategy = LFS_TWO;
+      break;
     case kStrategyThree:
+      state.encoder.filter_strategy = LFS_THREE;
+      break;
     case kStrategyFour:
-      // Set the filters of all scanlines to that number.
-      filters.resize(h, filterstrategy);
-      state.encoder.filter_strategy = LFS_PREDEFINED;
-      state.encoder.predefined_filters = &filters[0];
+      state.encoder.filter_strategy = LFS_FOUR;
       break;
     case kStrategyPredefined:
       lodepng::getFilterTypes(filters, origfile);
@@ -229,10 +233,7 @@ unsigned TryOptimize(
   // For very small output, also try without palette, it may be smaller thanks
   // to no palette storage overhead.
   if (!error && out->size() < 4096 && !keep_colortype) {
-    lodepng::State teststate;
-    std::vector<unsigned char> temp;
-    lodepng::decode(temp, w, h, teststate, *out);
-    if (teststate.info_png.color.colortype == LCT_PALETTE) {
+    if (lodepng::getPNGHeaderInfo(*out).color.colortype == LCT_PALETTE) {
       LodePNGColorStats stats;
       lodepng_color_stats_init(&stats);
       lodepng_compute_color_stats(&stats, &image[0], w, h, &state.info_raw);
@@ -379,7 +380,7 @@ int ZopfliPNGOptimize(const std::vector<unsigned char>& origpng,
   lodepng::State inputstate;
   error = lodepng::decode(image, w, h, inputstate, origpng);
 
-  bool keep_colortype = false;
+  bool keep_colortype = png_options.keep_colortype;
 
   if (!png_options.keepchunks.empty()) {
     // If the user wants to keep the non-essential chunks bKGD or sBIT, the
@@ -391,10 +392,12 @@ int ZopfliPNGOptimize(const std::vector<unsigned char>& origpng,
     // possible.
     std::set<std::string> keepchunks;
     ChunksToKeep(origpng, png_options.keepchunks, &keepchunks);
-    keep_colortype = keepchunks.count("bKGD") || keepchunks.count("sBIT");
-    if (keep_colortype && verbose) {
-      printf("Forced to keep original color type due to keeping bKGD or sBIT"
-             " chunk.\n");
+    if (keepchunks.count("bKGD") || keepchunks.count("sBIT")) {
+      if (!keep_colortype && verbose) {
+        printf("Forced to keep original color type due to keeping bKGD or sBIT"
+               " chunk.\n");
+      }
+      keep_colortype = true;
     }
   }
 
