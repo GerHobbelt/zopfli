@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #include "blocksplitter.h"
@@ -286,7 +288,7 @@ void ZopfliBlockSplit(const ZopfliOptions* options,
 
   ZopfliInitLZ77Store(in, &store);
   ZopfliInitBlockState(options, instart, inend, 0, &s);
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
+  ZopfliAllocHash(ZopfliWindowSize, h);
 
   *npoints = 0;
   *splitpoints = 0;

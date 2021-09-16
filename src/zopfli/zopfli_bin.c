@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 /*
@@ -164,6 +166,10 @@ int main(int argc, char* argv[]) {
         && arg[3] >= '0' && arg[3] <= '9') {
       options.numiterations = atoi(arg + 3);
     }
+    else if (arg[0] == '-' && arg[1] == '-' && arg[2] == 'w'
+        && arg[3] >= '0' && arg[3] <= '9') {
+      options.window_size = atoi(arg + 3);
+    }
     else if (StringsEqual(arg, "-h")) {
       fprintf(stderr,
           "Usage: zopfli [OPTION]... FILE...\n"
@@ -173,7 +179,9 @@ int main(int argc, char* argv[]) {
           "  -v    verbose mode\n"
           "  --i#  perform # iterations (default 15). More gives"
           " more compression but is slower."
-          " Examples: --i10, --i50, --i1000\n");
+          " Examples: --i10, --i50, --i1000\n"
+	      "  --w#  set window size to # (must be power of 2, default 32768)\n"
+		  );
       fprintf(stderr,
           "  --gzip        output to gzip format (default)\n"
           "  --zlib        output to zlib format instead of gzip\n"
@@ -185,6 +193,10 @@ int main(int argc, char* argv[]) {
 
   if (options.numiterations < 1) {
     fprintf(stderr, "Error: must have 1 or more iterations\n");
+    return 0;
+  }
+  if (options.window_size < 16 || options.window_size > 32768 || (options.window_size & (options.window_size - 1))) {
+    fprintf(stderr, "Error: window size must be a power of 2 between 16 and 32768\n");
     return 0;
   }
 

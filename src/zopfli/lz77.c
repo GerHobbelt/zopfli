@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #include "lz77.h"
@@ -24,6 +26,9 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+uint32_t ZopfliWindowSize;
+uint32_t ZopfliWindowMask;
 
 void ZopfliInitLZ77Store(const unsigned char* data, ZopfliLZ77Store* store) {
   store->size = 0;
@@ -408,16 +413,16 @@ void ZopfliFindLongestMatch(ZopfliBlockState* s, const ZopfliHash* h,
     const unsigned char* array,
     size_t pos, size_t size, size_t limit,
     unsigned short* sublen, unsigned short* distance, unsigned short* length) {
-  unsigned short hpos = pos & ZOPFLI_WINDOW_MASK, p, pp;
+  unsigned short hpos = pos & ZopfliWindowMask, p, pp;
   unsigned short bestdist = 0;
   unsigned short bestlength = 1;
   const unsigned char* scan;
   const unsigned char* match;
   const unsigned char* arrayend;
   const unsigned char* arrayend_safe;
-#if ZOPFLI_MAX_CHAIN_HITS < ZOPFLI_WINDOW_SIZE
-  int chain_counter = ZOPFLI_MAX_CHAIN_HITS;  /* For quitting early. */
-#endif
+  int chain_counter = 0;
+  if (ZOPFLI_MAX_CHAIN_HITS < ZopfliWindowSize)
+	chain_counter = ZOPFLI_MAX_CHAIN_HITS;  /* For quitting early. */
 
   unsigned dist = 0;  /* Not unsigned short on purpose. */
 
@@ -458,13 +463,13 @@ void ZopfliFindLongestMatch(ZopfliBlockState* s, const ZopfliHash* h,
 
   assert(pp == hpos);
 
-  dist = p < pp ? pp - p : ((ZOPFLI_WINDOW_SIZE - p) + pp);
+  dist = p < pp ? pp - p : ((ZopfliWindowSize - p) + pp);
 
   /* Go through all distances. */
-  while (dist < ZOPFLI_WINDOW_SIZE) {
+  while (dist < ZopfliWindowSize) {
     unsigned short currentlength = 0;
 
-    assert(p < ZOPFLI_WINDOW_SIZE);
+    assert(p < ZopfliWindowSize);
     assert(p == hprev[pp]);
     assert(hhashval[p] == hval);
 
@@ -479,9 +484,9 @@ void ZopfliFindLongestMatch(ZopfliBlockState* s, const ZopfliHash* h,
           || *(scan + bestlength) == *(match + bestlength)) {
 
 #ifdef ZOPFLI_HASH_SAME
-        unsigned short same0 = h->same[pos & ZOPFLI_WINDOW_MASK];
+        unsigned short same0 = h->same[pos & ZopfliWindowMask];
         if (same0 > 2 && *scan == *match) {
-          unsigned short same1 = h->same[(pos - dist) & ZOPFLI_WINDOW_MASK];
+          unsigned short same1 = h->same[(pos - dist) & ZopfliWindowMask];
           unsigned short same = same0 < same1 ? same0 : same1;
           if (same > limit) same = limit;
           scan += same;
@@ -522,12 +527,14 @@ void ZopfliFindLongestMatch(ZopfliBlockState* s, const ZopfliHash* h,
     p = hprev[p];
     if (p == pp) break;  /* Uninited prev value. */
 
-    dist += p < pp ? pp - p : ((ZOPFLI_WINDOW_SIZE - p) + pp);
+    dist += p < pp ? pp - p : ((ZopfliWindowSize - p) + pp);
 
-#if ZOPFLI_MAX_CHAIN_HITS < ZOPFLI_WINDOW_SIZE
-    chain_counter--;
-    if (chain_counter <= 0) break;
-#endif
+	if (ZOPFLI_MAX_CHAIN_HITS < ZopfliWindowSize)
+	{
+		chain_counter--;
+		if (chain_counter <= 0)
+			break;
+	}
   }
 
 #ifdef ZOPFLI_LONGEST_MATCH_CACHE
@@ -548,8 +555,8 @@ void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in,
   unsigned short leng;
   unsigned short dist;
   int lengthscore;
-  size_t windowstart = instart > ZOPFLI_WINDOW_SIZE
-      ? instart - ZOPFLI_WINDOW_SIZE : 0;
+  size_t windowstart = instart > ZopfliWindowSize
+      ? instart - ZopfliWindowSize : 0;
   unsigned short dummysublen[259];
 
 #ifdef ZOPFLI_LAZY_MATCHING
@@ -562,7 +569,7 @@ void ZopfliLZ77Greedy(ZopfliBlockState* s, const unsigned char* in,
 
   if (instart == inend) return;
 
-  ZopfliResetHash(ZOPFLI_WINDOW_SIZE, h);
+  ZopfliResetHash(ZopfliWindowSize, h);
   ZopfliWarmupHash(in, windowstart, inend, h);
   for (i = windowstart; i < instart; i++) {
     ZopfliUpdateHash(in, i, inend, h);

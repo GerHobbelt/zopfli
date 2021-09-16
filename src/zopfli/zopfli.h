@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #ifndef ZOPFLI_ZOPFLI_H_
@@ -22,6 +24,7 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 
 #include <stddef.h>
 #include <stdlib.h> /* for size_t */
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,6 +64,11 @@ typedef struct ZopfliOptions {
   extreme results that hurt compression on some files). Default value: 15.
   */
   int blocksplittingmax;
+
+  /*
+  How far back the compressor looks for matches
+  */
+  uint32_t window_size;
 } ZopfliOptions;
 
 /* Initializes options with default values. */
