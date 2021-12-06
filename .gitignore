@@ -1,0 +1,11 @@
+# Objects
+obj/src/zopfli/*.o
+obj/src/zopflipng/*.o
+obj/src/zopflipng/lodepng/*.o
+
+# Libraries and executables
+*.a
+*.so.*
+*.exe
+zopfli
+zopflipng
