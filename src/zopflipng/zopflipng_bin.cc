@@ -14,6 +14,7 @@
 //
 // Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 // Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+// Author: chris@sourcefoundry.org (Chris Simpkins)
 
 // Command line tool to recompress and optimize PNG images, using zopflipng_lib.
 
@@ -26,6 +27,8 @@
 
 #include "monolithic_examples.h"
 
+// C.S.: define version changes here and in makefile
+#define ZOPFLIPNG_VERSION "2.2.0"
 
 // Returns directory path (including last slash) in dir, filename without
 // extension in file, extension (including the dot) in ext
@@ -72,8 +75,16 @@ static size_t GetFileSize(const std::string& filename) {
   return size;
 }
 
+static void ShowVersion() {
+  printf("zopflipng v%s (@chrissimpkins derivative)\n", ZOPFLIPNG_VERSION);
+}
+
 static void ShowHelp() {
-  printf("ZopfliPNG, a Portable Network Graphics (PNG) image optimizer.\n"
+  printf("==================================================\n");
+  printf("ZopfliPNG v%s (@chrissimpkins derivative)\n", ZOPFLIPNG_VERSION);
+  printf("A Portable Network Graphics (PNG) image optimizer\n"
+         "Apache License, Version 2.0\n"
+         "==================================================\n"
          "\n"
          "Usage: zopflipng [options]... infile.png outfile.png\n"
          "       zopflipng [options]... --prefix=[fileprefix] [files.png]...\n"
@@ -141,7 +152,7 @@ static void ShowHelp() {
          " outfile.png\n"
          "Compress more: zopflipng -m infile.png outfile.png\n"
          "Optimize multiple files: zopflipng --prefix a.png b.png c.png\n"
-         "Compress really good and trying all filter strategies: zopflipng"
+         "Compress really well and try all filter strategies: zopflipng"
          " --iterations=500 --filters=01234mepb --lossy_8bit"
          " --lossy_transparent infile.png outfile.png\n");
 }
@@ -163,7 +174,7 @@ static void PrintResultSize(const char* label, size_t oldsize, size_t newsize) {
 int main(int argc, const char **argv) {
   if (argc < 2) {
     ShowHelp();
-    return 0;
+    return 1;
   }
 
   ZopfliPNGOptions png_options;
@@ -172,6 +183,7 @@ int main(int argc, const char **argv) {
   bool always_zopflify = false;  // overwrite file even if we have bigger result
   bool yes = false;  // do not ask to overwrite files
   bool dryrun = false;  // never save anything
+  bool iterations_set = false; // did user specify number of iterations?
 
   std::string user_out_filename;  // output filename if no prefix is used
   bool use_prefix = false;
@@ -195,9 +207,12 @@ int main(int argc, const char **argv) {
         } else if (c == 'h') {
           ShowHelp();
           return 0;
+        } else if (c == 'v') {
+          ShowVersion();
+          return 0;
         } else {
           printf("Unknown flag: %c\n", c);
-          return 0;
+          return 1;
         }
       }
     } else if (arg[0] == '-' && arg.size() > 1 && arg[1] == '-') {
@@ -217,6 +232,7 @@ int main(int argc, const char **argv) {
         if (num < 1) num = 1;
         png_options.num_iterations = num;
         png_options.num_iterations_large = num;
+        iterations_set = true;
       } else if (name == "--splitting") {
         // ignored
       } else if (name == "--filters") {
@@ -252,7 +268,7 @@ int main(int argc, const char **argv) {
         if (!correct) {
           printf("Error: keepchunks format must be like for example:\n"
                  " --keepchunks=gAMA,cHRM,sRGB,iCCP\n");
-          return 0;
+          return 1;
         }
       } else if (name == "--keepcolortype") {
         png_options.keep_colortype = true;
@@ -262,9 +278,12 @@ int main(int argc, const char **argv) {
       } else if (name == "--help") {
         ShowHelp();
         return 0;
+      } else if (name == "--version") {
+        ShowVersion();
+        return 0;
       } else {
         printf("Unknown flag: %s\n", name.c_str());
-        return 0;
+        return 1;
       }
     } else {
       files.push_back(argv[i]);
@@ -280,7 +299,7 @@ int main(int argc, const char **argv) {
     } else {
       printf("Please provide one input and output filename\n\n");
       ShowHelp();
-      return 0;
+      return 1;
     }
   }
 
@@ -317,6 +336,41 @@ int main(int argc, const char **argv) {
 
     error = lodepng::load_file(origpng, files[i]);
     if (!error) {
+      // Define number of iterations based upon image size if
+      // --iterations flag was not specified
+      if (!iterations_set) {
+        size_t insize = origpng.size();
+        if (insize <= (2*1024)) {
+          png_options.num_iterations = 80;
+        }
+        else if (insize > (2*1024) && insize <= (5*1024)) {
+          png_options.num_iterations = 50;
+        }
+        else if (insize > (5*1024) && insize <= (15*1024)) {
+          png_options.num_iterations = 40;
+        }
+        else if (insize > (15*1024) && insize <= (50*1024)) {
+          png_options.num_iterations = 25;
+        }
+        else if (insize > (50*1024) && insize <= (225*1024)) {
+          png_options.num_iterations = 18;
+        }
+        else if (insize > (225*1024) && insize <= (350*1024)) {
+          png_options.num_iterations = 8;
+        }
+        else if (insize > (350*1024) && insize <= (750*1024)) {
+          png_options.num_iterations = 5;
+        }
+        else if (insize > (750*1024) && insize <= (1500*1024)) {
+          png_options.num_iterations = 3;
+        }
+        else {
+          png_options.num_iterations = 2;
+        }
+      }
+      // report number of iterations definition to user
+      printf("Iterations: %d\n", png_options.num_iterations);
+      // begin optimization of image
       error = ZopfliPNGOptimize(origpng, png_options,
                                 png_options.verbose, &resultpng);
     }

@@ -14,6 +14,7 @@
 //
 // Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 // Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+// Author: chris@sourcefoundry.org (Chris Simpkins)
 
 // See zopflipng_lib.h
 
