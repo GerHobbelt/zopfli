@@ -499,6 +499,7 @@ extern "C" int CZopfliPNGOptimize(const unsigned char* origpng,
   opts.num_iterations       = png_options->num_iterations;
   opts.num_iterations_large = png_options->num_iterations_large;
   opts.block_split_strategy = png_options->block_split_strategy;
+  opts.keep_colortype       = png_options->keep_colortype;
 
   for (int i = 0; i < png_options->num_filter_strategies; i++) {
     opts.filter_strategies.push_back(png_options->filter_strategies[i]);

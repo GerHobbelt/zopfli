@@ -56,7 +56,7 @@ typedef struct CZopfliPNGOptions {
 
   int auto_filter_strategy;
 
-  int keep_colortype;
+  bool keep_colortype;
 
   char** keepchunks;
   // How many entries in keepchunks.
