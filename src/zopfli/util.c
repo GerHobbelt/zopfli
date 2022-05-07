@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #include "util.h"
@@ -32,4 +34,5 @@ void ZopfliInitOptions(ZopfliOptions* options) {
   options->blocksplitting = 1;
   options->blocksplittinglast = 0;
   options->blocksplittingmax = 15;
+  options->window_size = 32768;
 }

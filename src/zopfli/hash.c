@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #include "hash.h"
@@ -99,7 +101,7 @@ static void UpdateHashValue(ZopfliHash* h, unsigned char c) {
 
 void ZopfliUpdateHash(const unsigned char* array, size_t pos, size_t end,
                 ZopfliHash* h) {
-  unsigned short hpos = pos & ZOPFLI_WINDOW_MASK;
+  unsigned short hpos = pos & ZopfliWindowMask;
 #ifdef ZOPFLI_HASH_SAME
   size_t amount = 0;
 #endif
@@ -115,8 +117,8 @@ void ZopfliUpdateHash(const unsigned char* array, size_t pos, size_t end,
 
 #ifdef ZOPFLI_HASH_SAME
   /* Update "same". */
-  if (h->same[(pos - 1) & ZOPFLI_WINDOW_MASK] > 1) {
-    amount = h->same[(pos - 1) & ZOPFLI_WINDOW_MASK] - 1;
+  if (h->same[(pos - 1) & ZopfliWindowMask] > 1) {
+    amount = h->same[(pos - 1) & ZopfliWindowMask] - 1;
   }
   while (pos + amount + 1 < end &&
       array[pos] == array[pos + amount + 1] && amount < (unsigned short)(-1)) {

@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 /*
@@ -27,6 +29,7 @@ basic deflate specification values and generic program options.
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /* Minimum and maximum length that can be encoded in deflate. */
 #define ZOPFLI_MAX_MATCH 258
@@ -41,13 +44,13 @@ The window size for deflate. Must be a power of two. This should be 32768, the
 maximum possible by the deflate spec. Anything less hurts compression more than
 speed.
 */
-#define ZOPFLI_WINDOW_SIZE 32768
+extern uint32_t ZopfliWindowSize;
 
 /*
 The window mask used to wrap indices into the window. This is why the
 window size must be a power of two.
 */
-#define ZOPFLI_WINDOW_MASK (ZOPFLI_WINDOW_SIZE - 1)
+extern uint32_t ZopfliWindowMask;
 
 /*
 A block structure of huge, non-smart, blocks to divide the input into, to allow

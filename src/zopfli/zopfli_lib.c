@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #include "zopfli.h"
@@ -28,15 +30,20 @@ Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
 void ZopfliCompress(const ZopfliOptions* options, ZopfliFormat output_type,
                     const unsigned char* in, size_t insize,
                     unsigned char** out, size_t* outsize) {
-  if (output_type == ZOPFLI_FORMAT_GZIP) {
-    ZopfliGzipCompress(options, in, insize, out, outsize);
-  } else if (output_type == ZOPFLI_FORMAT_ZLIB) {
-    ZopfliZlibCompress(options, in, insize, out, outsize);
-  } else if (output_type == ZOPFLI_FORMAT_DEFLATE) {
-    unsigned char bp = 0;
-    ZopfliDeflate(options, 2 /* Dynamic block */, 1,
-                  in, insize, &bp, out, outsize);
-  } else {
-    assert(0);
-  }
+	uint32_t sz = options->window_size;
+	assert(sz>=16 && sz<=32768);
+	assert(!(sz& (sz-1)));
+	ZopfliWindowSize = sz;
+	ZopfliWindowMask = sz - 1;
+	if (output_type == ZOPFLI_FORMAT_GZIP) {
+		ZopfliGzipCompress(options, in, insize, out, outsize);
+	} else if (output_type == ZOPFLI_FORMAT_ZLIB) {
+		ZopfliZlibCompress(options, in, insize, out, outsize);
+	} else if (output_type == ZOPFLI_FORMAT_DEFLATE) {
+		unsigned char bp = 0;
+		ZopfliDeflate(options, 2 /* Dynamic block */, 1,
+							in, insize, &bp, out, outsize);
+	} else {
+		assert(0);
+	}
 }

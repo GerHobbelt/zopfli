@@ -15,6 +15,8 @@ limitations under the License.
 
 Author: lode.vandevenne@gmail.com (Lode Vandevenne)
 Author: jyrki.alakuijala@gmail.com (Jyrki Alakuijala)
+
+Modified 2021 by Dennis May to allow variable window size.
 */
 
 #include "squeeze.h"
@@ -226,15 +228,15 @@ static double GetBestLengths(ZopfliBlockState *s,
   unsigned short leng;
   unsigned short dist;
   unsigned short sublen[259];
-  size_t windowstart = instart > ZOPFLI_WINDOW_SIZE
-      ? instart - ZOPFLI_WINDOW_SIZE : 0;
+  size_t windowstart = instart > ZopfliWindowSize
+      ? instart - ZopfliWindowSize : 0;
   double result;
   double mincost = GetCostModelMinCost(costmodel, costcontext);
   double mincostaddcostj;
 
   if (instart == inend) return 0;
 
-  ZopfliResetHash(ZOPFLI_WINDOW_SIZE, h);
+  ZopfliResetHash(ZopfliWindowSize, h);
   ZopfliWarmupHash(in, windowstart, inend, h);
   for (i = windowstart; i < instart; i++) {
     ZopfliUpdateHash(in, i, inend, h);
@@ -251,10 +253,10 @@ static double GetBestLengths(ZopfliBlockState *s,
 #ifdef ZOPFLI_SHORTCUT_LONG_REPETITIONS
     /* If we're in a long repetition of the same character and have more than
     ZOPFLI_MAX_MATCH characters before and after our position. */
-    if (h->same[i & ZOPFLI_WINDOW_MASK] > ZOPFLI_MAX_MATCH * 2
+    if (h->same[i & ZopfliWindowMask] > ZOPFLI_MAX_MATCH * 2
         && i > instart + ZOPFLI_MAX_MATCH + 1
         && i + ZOPFLI_MAX_MATCH * 2 + 1 < inend
-        && h->same[(i - ZOPFLI_MAX_MATCH) & ZOPFLI_WINDOW_MASK]
+        && h->same[(i - ZOPFLI_MAX_MATCH) & ZopfliWindowMask]
             > ZOPFLI_MAX_MATCH) {
       double symbolcost = costmodel(ZOPFLI_MAX_MATCH, 1, costcontext);
       /* Set the length to reach each one to ZOPFLI_MAX_MATCH, and the cost to
@@ -340,14 +342,14 @@ static void FollowPath(ZopfliBlockState* s,
                        unsigned short* path, size_t pathsize,
                        ZopfliLZ77Store* store, ZopfliHash *h) {
   size_t i, j, pos = 0;
-  size_t windowstart = instart > ZOPFLI_WINDOW_SIZE
-      ? instart - ZOPFLI_WINDOW_SIZE : 0;
+  size_t windowstart = instart > ZopfliWindowSize
+      ? instart - ZopfliWindowSize : 0;
 
   size_t total_length_test = 0;
 
   if (instart == inend) return;
 
-  ZopfliResetHash(ZOPFLI_WINDOW_SIZE, h);
+  ZopfliResetHash(ZopfliWindowSize, h);
   ZopfliWarmupHash(in, windowstart, inend, h);
   for (i = windowstart; i < instart; i++) {
     ZopfliUpdateHash(in, i, inend, h);
@@ -472,7 +474,7 @@ void ZopfliLZ77Optimal(ZopfliBlockState *s,
   InitRanState(&ran_state);
   InitStats(&stats);
   ZopfliInitLZ77Store(in, &currentstore);
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
+  ZopfliAllocHash(ZopfliWindowSize, h);
 
   /* Do regular deflate, then loop multiple shortest path runs, each time using
   the statistics of the previous run. */
@@ -543,7 +545,7 @@ void ZopfliLZ77OptimalFixed(ZopfliBlockState *s,
   if (!costs) exit(-1); /* Allocation failed. */
   if (!length_array) exit(-1); /* Allocation failed. */
 
-  ZopfliAllocHash(ZOPFLI_WINDOW_SIZE, h);
+  ZopfliAllocHash(ZopfliWindowSize, h);
 
   s->blockstart = instart;
   s->blockend = inend;
