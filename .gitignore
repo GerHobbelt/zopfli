@@ -7,5 +7,3 @@ obj/src/zopflipng/lodepng/*.o
 *.a
 *.so.*
 *.exe
-zopfli
-zopflipng

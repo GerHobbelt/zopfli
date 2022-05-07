@@ -24,9 +24,12 @@
 #include "lodepng/lodepng_util.h"
 #include "zopflipng_lib.h"
 
+#include "monolithic_examples.h"
+
+
 // Returns directory path (including last slash) in dir, filename without
 // extension in file, extension (including the dot) in ext
-void GetFileNameParts(const std::string& filename,
+static void GetFileNameParts(const std::string& filename,
     std::string* dir, std::string* file, std::string* ext) {
   size_t npos = (size_t)(-1);
   size_t slashpos = filename.find_last_of("/\\");
@@ -49,7 +52,7 @@ void GetFileNameParts(const std::string& filename,
 }
 
 // Returns whether the file exists and we have read permissions.
-bool FileExists(const std::string& filename) {
+static bool FileExists(const std::string& filename) {
   FILE* file = fopen(filename.c_str(), "rb");
   if (file) {
     fclose(file);
@@ -59,7 +62,7 @@ bool FileExists(const std::string& filename) {
 }
 
 // Returns the size of the file, if it exists and we have read permissions.
-size_t GetFileSize(const std::string& filename) {
+static size_t GetFileSize(const std::string& filename) {
   size_t size;
   FILE* file = fopen(filename.c_str(), "rb");
   if (!file) return 0;
@@ -69,7 +72,7 @@ size_t GetFileSize(const std::string& filename) {
   return size;
 }
 
-void ShowHelp() {
+static void ShowHelp() {
   printf("ZopfliPNG, a Portable Network Graphics (PNG) image optimizer.\n"
          "\n"
          "Usage: zopflipng [options]... infile.png outfile.png\n"
@@ -143,16 +146,21 @@ void ShowHelp() {
          " --lossy_transparent infile.png outfile.png\n");
 }
 
-void PrintSize(const char* label, size_t size) {
+static void PrintSize(const char* label, size_t size) {
   printf("%s: %d (%dK)\n", label, (int) size, (int) size / 1024);
 }
 
-void PrintResultSize(const char* label, size_t oldsize, size_t newsize) {
+static void PrintResultSize(const char* label, size_t oldsize, size_t newsize) {
   printf("%s: %d (%dK). Percentage of original: %.3f%%\n",
          label, (int) newsize, (int) newsize / 1024, newsize * 100.0 / oldsize);
 }
 
-int main(int argc, char *argv[]) {
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      zopflipng_main(cnt, arr)
+#endif
+
+int main(int argc, const char **argv) {
   if (argc < 2) {
     ShowHelp();
     return 0;

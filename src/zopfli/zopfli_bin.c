@@ -36,9 +36,12 @@ decompressor.
 #include "zlib_container.h"
 
 /* Windows workaround for stdout output. */
-#if _WIN32
-#include <fcntl.h>
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#  include <fcntl.h>
+#  include <io.h>
 #endif
+
+#include "monolithic_examples.h"
 
 /*
 Loads a file into a memory array. Returns 1 on success, 0 if file doesn't exist
@@ -116,9 +119,9 @@ static void CompressFile(const ZopfliOptions* options,
   if (outfilename) {
     SaveFile(outfilename, out, outsize);
   } else {
-#if _WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
     /* Windows workaround for stdout output. */
-    _setmode(_fileno(stdout), _O_BINARY);
+    (void)_setmode(_fileno(stdout), _O_BINARY);
 #endif
     fwrite(out, 1, outsize, stdout);
   }
@@ -143,7 +146,12 @@ static char StringsEqual(const char* str1, const char* str2) {
   return strcmp(str1, str2) == 0;
 }
 
-int main(int argc, char* argv[]) {
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      zopfli_main(cnt, arr)
+#endif
+
+int main(int argc, const char** argv) {
   ZopfliOptions options;
   ZopfliFormat output_type = ZOPFLI_FORMAT_GZIP;
   const char* filename = 0;
